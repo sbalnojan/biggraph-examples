@@ -4,17 +4,13 @@ import random
 """
 adapted from https://github.com/facebookresearch/PyTorch-BigGraph/blob/master/torchbiggraph/examples/livejournal.py
 """
-FILENAMES = {
-    'train': 'train.txt',
-    'test': 'test.txt',
-}
-TRAIN_FRACTION = 0.75
+# ----------------------------------------------------------------------------------------------------------------------
+# Helper functions, and constants
 
 def convert_path(fname):
     basename, _ = os.path.splitext(fname)
     out_dir = basename + '_partitioned'
     return out_dir
-
 
 def random_split_file(fpath):
     root = os.path.dirname(fpath)
@@ -52,11 +48,17 @@ def random_split_file(fpath):
         for line in lines[split_len:]:
             out_tf_test.write(line)
 
-
-
 DATA_PATH = "data/example_1/example.txt"
 DATA_DIR = "data/example_1"
 CONFIG_PATH = "config_1.py"
+FILENAMES = {
+    'train': 'train.txt',
+    'test': 'test.txt',
+}
+TRAIN_FRACTION = 0.75
+
+# ----------------------------------------------------------------------------------------------------------------------
+#
 
 random_split_file(DATA_PATH)
 
@@ -85,8 +87,10 @@ train_config = attr.evolve(train_config, edge_paths=train_path)
 
 from torchbiggraph.train import train
 train(train_config)
+
 # Time to run on liveJournal data: 17:43 - ???
 ### SNIPPET 3 ###
+
 from torchbiggraph.eval import do_eval
 
 eval_path = [convert_path(os.path.join(DATA_DIR, FILENAMES['test']))]
