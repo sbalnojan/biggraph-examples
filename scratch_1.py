@@ -1,5 +1,13 @@
 import os
 import random
+import json
+import h5py
+import attr
+
+from torchbiggraph.converters.import_from_tsv import convert_input_data
+from torchbiggraph.config import parse_config
+from torchbiggraph.train import train
+from torchbiggraph.eval import do_eval
 
 """
 adapted from https://github.com/facebookresearch/PyTorch-BigGraph/blob/master/torchbiggraph/examples/livejournal.py
@@ -57,76 +65,55 @@ FILENAMES = {
 }
 TRAIN_FRACTION = 0.75
 
+edge_paths = [os.path.join(DATA_DIR, name) for name in FILENAMES.values()]
+train_path = [convert_path(os.path.join(DATA_DIR, FILENAMES['train']))]
+eval_path = [convert_path(os.path.join(DATA_DIR, FILENAMES['test']))]
+
 # ----------------------------------------------------------------------------------------------------------------------
 #
 
-random_split_file(DATA_PATH)
+def run_train_eval():
+    random_split_file(DATA_PATH)
 
-### SNIPPET 1 ###
+    convert_input_data(
+        CONFIG_PATH,
+        edge_paths,
+        lhs_col=0,
+        rhs_col=1,
+        rel_col=None,
+    )
 
-edge_paths = [os.path.join(DATA_DIR, name) for name in FILENAMES.values()]
+    train_config = parse_config(CONFIG_PATH)
 
-from torchbiggraph.converters.import_from_tsv import convert_input_data
+    train_config = attr.evolve(train_config, edge_paths=train_path)
 
-convert_input_data(
-    CONFIG_PATH,
-    edge_paths,
-    lhs_col=0,
-    rhs_col=1,
-    rel_col=None,
-)
+    train(train_config)
 
-### SNIPPET 2 ###
+    eval_config = attr.evolve(train_config, edge_paths=eval_path)
 
-from torchbiggraph.config import parse_config
-import attr
-train_config = parse_config(CONFIG_PATH)
+    do_eval(eval_config)
 
-train_path = [convert_path(os.path.join(DATA_DIR, FILENAMES['train']))]
-train_config = attr.evolve(train_config, edge_paths=train_path)
+def output_embedding():
+    with open(os.path.join(DATA_DIR, "dictionary.json"), "rt") as tf:
+        dictionary = json.load(tf)
 
-from torchbiggraph.train import train
-train(train_config)
+    user_id = "0"
+    offset = dictionary["entities"]["user_id"].index(user_id)
+    print("our offset for user_id ", user_id, " is: ", offset)
 
-# Time to run on liveJournal data: 17:43 - ???
-### SNIPPET 3 ###
+    with h5py.File("model/example_1/embeddings_user_id_0.v10.h5", "r") as hf:
+        embedding = hf["embeddings"][offset, :]
 
-from torchbiggraph.eval import do_eval
+    print(f" our embedding looks like this: {embedding}")
+    print(f"and has a size of: {embedding.shape}")
 
-eval_path = [convert_path(os.path.join(DATA_DIR, FILENAMES['test']))]
-eval_config = attr.evolve(train_config, edge_paths=eval_path)
+# ----------------------------------------------------------------------------------------------------------------------
+# Main method
 
-do_eval(eval_config)
+def main():
+    run_train_eval()
 
-### SNIPPET 4 ###
+    output_embedding()
 
-import json
-import h5py
-
-with open(os.path.join(DATA_DIR,"dictionary.json"), "rt") as tf:
-    dictionary = json.load(tf)
-
-user_id = "0"
-offset = dictionary["entities"]["user_id"].index(user_id)
-print("our offset for user_id " , user_id, " is: ", offset)
-
-with h5py.File("model/example_1/embeddings_user_id_" + user_id + ".v10.h5", "r") as hf:
-    embedding = hf["embeddings"][0, :]
-
-print(embedding)
-print(embedding.shape)
-### SNIPPET 5 ###
-
-
-
-with h5py.File("model/example_1/model.v10.h5", "r") as hf:
-    a = hf["model"]
-    print(hf)
-    embedding = hf["embeddings"][offset, :]
-
-
-f = h5py.File("model/example_1/model.v9.h5", "r")
-a = f["model"]["embeddings"]
-
-print(embedding)
-
+if __name__ == "__main__":
+    main()
