@@ -60,7 +60,6 @@ CONFIG_PATH = "config_2.py"
 
 random_split_file(DATA_PATH)
 
-### SNIPPET 1 ###
 
 edge_paths = [os.path.join(DATA_DIR, name) for name in FILENAMES.values()]
 
@@ -74,7 +73,6 @@ convert_input_data(
     rel_col=None,
 )
 
-### SNIPPET 2 ###
 
 from torchbiggraph.config import parse_config
 import attr
@@ -85,16 +83,13 @@ train_config = attr.evolve(train_config, edge_paths=train_path)
 
 from torchbiggraph.train import train
 train(train_config)
-# Time to run on liveJournal data: 17:43 - ???
-### SNIPPET 3 ###
+
 from torchbiggraph.eval import do_eval
 
 eval_path = [convert_path(os.path.join(DATA_DIR, FILENAMES['test']))]
 eval_config = attr.evolve(train_config, edge_paths=eval_path)
 
 do_eval(eval_config)
-
-### SNIPPET 4 ###
 
 import json
 import h5py
@@ -113,23 +108,20 @@ with h5py.File("model/example_2/embeddings_user_id_0.v10.h5", "r") as hf:
 print(embedding_all)
 print(embedding_all.shape)
 
-### SNIPPET 5 ###
+### SNIPPET 1 ###
 
 print("Now let's do some simple things within torch:")
 
 from torchbiggraph.model import DotComparator
-src_entity_offset = dictionary["entities"]["user_id"].index("0")  # France
-dest_1_entity_offset = dictionary["entities"]["user_id"].index("7")  # Paris
-dest_2_entity_offset = dictionary["entities"]["user_id"].index("1")  # Paris
-rel_type_index = dictionary["relations"].index("follow") # note we only have one...
+src_entity_offset = dictionary["entities"]["user_id"].index("0")
+dest_1_entity_offset = dictionary["entities"]["user_id"].index("7")
+dest_2_entity_offset = dictionary["entities"]["user_id"].index("1")
 
 with h5py.File("model/example_2/embeddings_user_id_0.v10.h5", "r") as hf:
     src_embedding = hf["embeddings"][src_entity_offset, :]
     dest_1_embedding = hf["embeddings"][dest_1_entity_offset, :]
     dest_2_embedding = hf["embeddings"][dest_2_entity_offset, :]
     dest_embeddings = hf["embeddings"][...]
-
-
 
 import torch
 comparator = DotComparator()
@@ -151,12 +143,13 @@ scores_2, _, _ = comparator(
 print(scores_1)
 print(scores_2)
 
-### SNIPPET 6 ###
+### SNIPPET 2 ###
+
 print("finally, let's do some ranking...")
 entity_count = 8
 scores, _, _ = comparator(
-    comparator.prepare(torch.tensor(src_embedding.reshape([1,1,10]))).expand(1, entity_count, 10),
-    comparator.prepare(torch.tensor(dest_embeddings.reshape([1,8,10]))),
+    comparator.prepare(torch.tensor(src_embedding.reshape([1,1,10]))).expand(1, entity_count+1, 10),
+    comparator.prepare(torch.tensor(dest_embeddings.reshape([1,entity_count+1,10]))),
     torch.empty(1, 0, 10),  # Left-hand side negatives, not needed
     torch.empty(1, 0, 10),  # Right-hand side negatives, not needed
 )
@@ -164,5 +157,4 @@ permutation = scores.flatten().argsort(descending=True)
 
 top_entities = [dictionary["entities"]["user_id"][index] for index in permutation]
 print(top_entities)
-### Three common usecases: https://torchbiggraph.readthedocs.io/en/latest/downstream_tasks.html
-
+### SNIPPET 3 ###
