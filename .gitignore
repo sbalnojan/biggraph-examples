@@ -1,9 +1,6 @@
-data/*
 model/*
 
-!model/.gitkeep
-!data/example_1/example.txt
-!data/example_2/example.txt
+!*.gitkeep
 
 cache*
 *cache*
